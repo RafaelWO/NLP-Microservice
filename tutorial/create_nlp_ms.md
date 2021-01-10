@@ -76,7 +76,7 @@ if __name__ == '__main__':
 ![simple-nlp-pipeline](./images/NLP-ms-2.gif)
 
 ## 4. Pre-download Model in separate Script
-This is very useful for running the API in a Docker container (see TODO).
+This is very useful for running the API in a Docker container (see [step 5](#5.-run-the-api-in-docker)).
 ```Python
 # FILE: download.py
 
@@ -137,3 +137,21 @@ class Conversation(Resource):
 if __name__ == '__main__':
     app.run()
 ```
+
+## 5. Run the API in docker
+To "dockerize" this application we need a `Dockerfile`.
+```dockerfile
+FROM pytorch/pytorch
+WORKDIR /usr/src/app
+
+COPY . .
+
+RUN pip install -r ./requirements.txt
+RUN python ./src/download.py
+
+ENTRYPOINT [ "python" ]
+CMD [ "src/service.py" ]
+```
+
+We use the latest PyTorch image and install the remaining dependencies. 
+Then we run the `download.py` script and set the entrypoint to run the main file in python. 
