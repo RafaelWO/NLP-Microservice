@@ -1,0 +1,11 @@
+# Patterns, Folders
+*.pyc
+*.pyo
+*.pyd
+**/__pycache__
+local_model
+tutorial
+
+# Files
+Dockerfile
+README.md
