@@ -1,22 +1,22 @@
 from flask import Flask, request
 from flask_restx import Resource, Api, fields
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoConfig
-from transformers import Conversation as ConversationHelper
+import torch
 
 app = Flask(__name__)
-api = Api(app, version="0.1", title="AI Conversation")
-ns = api.namespace("conversation")
+api = Api(app, version="0.1", title="AI Text-Generation")
+ns = api.namespace("text-generation")
 
 # Swagger defs
-conversation_input_def = api.model("Conversation Input", {
+conversation_input_def = api.model("Text Generation Input", {
     'text': fields.String(required=True,
-                          description="Start of conversation",
+                          description="Input prompt",
                           help="Text cannot be blank.",
-                          example="What is the meaning of life?")
+                          example="Artificial Intelligence is a")
 })
 
 
-model_str = "microsoft/DialoGPT-medium"
+model_str = "gpt2"
 print(f"Using model '{model_str}'")
 print("Loading tokenizer...", end=' ')
 tokenizer = AutoTokenizer.from_pretrained(f"local_model/{model_str}/tokenizer",
@@ -25,20 +25,26 @@ print("Done")
 print("Loading model...", end=' ')
 model = AutoModelForCausalLM.from_pretrained(f"local_model/{model_str}/model")
 print("Done")
+device = 0 if torch.cuda.is_available() else -1
+print(f"Using {'CPU' if device == -1 else 'GPU'} as device.")
 print("Building pipeline...", end=' ')
-conv_pipe = pipeline("conversational", model=model, tokenizer=tokenizer)
+generate_pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=device)
 print("Done")
 
 
-@ns.route('/conversation')
+@ns.route('/generate')
 class Conversation(Resource):
     @ns.expect(conversation_input_def)
     def post(self):
         input_text = request.json['text']
-        conversation = ConversationHelper(input_text)
-        out = conv_pipe(conversation)
+        out = generate_pipe(input_text, return_tensors=True, return_text=False)
 
-        return {'conversation': repr(out)}
+        # Remove out input from the generated text
+        out_ids = out[0]['generated_token_ids']
+        input_ids = tokenizer.encode(input_text, add_special_tokens=False)
+        generated_text = tokenizer.decode(out_ids[len(input_ids):])
+
+        return {'input': input_text, 'generated': generated_text}
 
 
 if __name__ == '__main__':

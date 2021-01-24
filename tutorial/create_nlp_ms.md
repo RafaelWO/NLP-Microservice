@@ -40,33 +40,34 @@ if __name__ == '__main__':
 from flask import Flask, request
 from flask_restx import Resource, Api, fields
 from transformers import pipeline
-from transformers import Conversation as ConversationHelper
+import torch
 
 app = Flask(__name__)
-api = Api(app, version="0.1", title="AI Conversation")
-ns = api.namespace("conversation")
+api = Api(app, version="0.1", title="AI Text-Generation")
+ns = api.namespace("text-generation")
 
 # Swagger defs
-conversation_input_def = api.model("Conversation Input", {
+conversation_input_def = api.model("Text Generation Input", {
     'text': fields.String(required=True,
-                          description="Start of conversation",
+                          description="Input prompt",
                           help="Text cannot be blank.",
-                          example="What is the meaning of life?")
+                          example="Artificial Intelligence is a")
 })
 
 
-conv_pipe = pipeline("conversational")      # Use default model of pipeline
+device = 0 if torch.cuda.is_available() else -1
+generate_pipe = pipeline("text-generation", device=device)     # Use default model of pipeline
 
 
-@ns.route('/conversation')
+@ns.route('/generate')
 class Conversation(Resource):
     @ns.expect(conversation_input_def)
     def post(self):
         input_text = request.json['text']
-        conversation = ConversationHelper(input_text)
-        out = conv_pipe(conversation)
+        out = generate_pipe(input_text)
+        generated_text = out[0]['generated_text']
 
-        return {'conversation': repr(out)}
+        return {'generated': generated_text}
 
 
 if __name__ == '__main__':
@@ -82,7 +83,7 @@ This is very useful for running the API in a Docker container (see [step 5](#5.-
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-model_str = "microsoft/DialoGPT-medium"
+model_str = "gpt2"
 AutoTokenizer.from_pretrained(model_str).save_pretrained(f"local_model/{model_str}/tokenizer")
 AutoModelForCausalLM.from_pretrained(model_str).save_pretrained(f"local_model/{model_str}/model")
 ```
@@ -94,44 +95,42 @@ Now the saved model can be used:
 from flask import Flask, request
 from flask_restx import Resource, Api, fields
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoConfig
-from transformers import Conversation as ConversationHelper
+import torch
 
 app = Flask(__name__)
-api = Api(app, version="0.1", title="AI Conversation")
-ns = api.namespace("conversation")
+api = Api(app, version="0.1", title="AI Text-Generation")
+ns = api.namespace("text-generation")
 
 # Swagger defs
-conversation_input_def = api.model("Conversation Input", {
+conversation_input_def = api.model("Text Generation Input", {
     'text': fields.String(required=True,
-                          description="Start of conversation",
+                          description="Input prompt",
                           help="Text cannot be blank.",
-                          example="What is the meaning of life?")
+                          example="Artificial Intelligence is a")
 })
 
 
-model_str = "microsoft/DialoGPT-medium"
-print(f"Using model '{model_str}'")
-print("Loading tokenizer...", end=' ')
+model_str = "gpt2"
 tokenizer = AutoTokenizer.from_pretrained(f"local_model/{model_str}/tokenizer",
                                           config=AutoConfig.from_pretrained(f"local_model/{model_str}/model"))
-print("Done")
-print("Loading model...", end=' ')
 model = AutoModelForCausalLM.from_pretrained(f"local_model/{model_str}/model")
-print("Done")
-print("Building pipeline...", end=' ')
-conv_pipe = pipeline("conversational", model=model, tokenizer=tokenizer)
-print("Done")
+device = 0 if torch.cuda.is_available() else -1
+generate_pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=device)
 
 
-@ns.route('/conversation')
+@ns.route('/generate')
 class Conversation(Resource):
     @ns.expect(conversation_input_def)
     def post(self):
         input_text = request.json['text']
-        conversation = ConversationHelper(input_text)
-        out = conv_pipe(conversation)
+        out = generate_pipe(input_text, return_tensors=True, return_text=False)
+        
+        # Remove out input from the generated text
+        out_ids = out[0]['generated_token_ids']
+        input_ids = tokenizer.encode(input_text, add_special_tokens=False)
+        generated_text = tokenizer.decode(out_ids[len(input_ids):])
 
-        return {'conversation': repr(out)}
+        return {'input': input_text, 'generated': generated_text}
 
 
 if __name__ == '__main__':
@@ -154,4 +153,48 @@ CMD [ "src/service.py" ]
 ```
 
 We use the latest PyTorch image and install the remaining dependencies. 
-Then we run the `download.py` script and set the entrypoint to run the main file in python. 
+Then we run the `download.py` script and set the entrypoint to run the main file in python.
+
+Additionally, we have to set out `host` in our flask app to `0.0.0.0` so that it is exposed to localhost:
+
+```python
+# FILE: service.py
+
+(...)
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000)
+```
+
+It is also helpful to introduce a `.dockerignore` file so that only the necessary things
+from this repo are copied to the docker container:
+```
+# Patterns, Folders
+*.pyc
+*.pyo
+*.pyd
+**/__pycache__
+local_model
+tutorial
+
+# Files
+Dockerfile
+README.md
+```
+
+Then we can build and run our container:
+```
+docker build -t <your_username>/my-repo .
+docker run -p 5000:5000 <your_username>/my-repo
+```
+![docker-build-and-run](./images/NLP-ms-docker-build-run.gif)
+
+And finally [push it to Docker-Hub][docker-hub]:
+```
+docker push <your_username>/my-private-repo
+```
+
+![docker-push](./images/NLP-ms-docker-push.gif)
+
+
+[docker-hub]: https://docs.docker.com/docker-hub/#step-4-build-and-push-a-container-image-to-docker-hub-from-your-computer
