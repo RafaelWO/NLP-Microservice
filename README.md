@@ -10,3 +10,5 @@
   - [TensorFlow 2.0]() or [PyTorch]()
     - I used Pytorch (see [here](https://pytorch.org/get-started/locally/) for installation instructions) 
   
+## Tutorial for Creating such a Microservice
+Please refer to the folder [tutorial](./tutorial).
