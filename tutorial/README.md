@@ -197,4 +197,11 @@ docker push <your_username>/my-private-repo
 ![docker-push](./images/NLP-ms-docker-push.gif)
 
 
+## 6. Run the pushed Docker image from any other Host
+Since our docker image is now published to Docker-Hub, we can pull it from 
+any other machine and run it there. To do this you simply have to log in
+using `docker login` and provide your credentials. Then you can pull the 
+image using `docker pull <your_username>/my-repo`.
+
+
 [docker-hub]: https://docs.docker.com/docker-hub/#step-4-build-and-push-a-container-image-to-docker-hub-from-your-computer
