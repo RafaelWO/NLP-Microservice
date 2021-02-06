@@ -47,7 +47,7 @@ api = Api(app, version="0.1", title="AI Text-Generation")
 ns = api.namespace("text-generation")
 
 # Swagger defs
-conversation_input_def = api.model("Text Generation Input", {
+generation_input_def = api.model("Text Generation Input", {
     'text': fields.String(required=True,
                           description="Input prompt",
                           help="Text cannot be blank.",
@@ -61,7 +61,7 @@ generate_pipe = pipeline("text-generation", device=device)     # Use default mod
 
 @ns.route('/generate')
 class Conversation(Resource):
-    @ns.expect(conversation_input_def)
+    @ns.expect(generation_input_def)
     def post(self):
         input_text = request.json['text']
         out = generate_pipe(input_text)
@@ -102,7 +102,7 @@ api = Api(app, version="0.1", title="AI Text-Generation")
 ns = api.namespace("text-generation")
 
 # Swagger defs
-conversation_input_def = api.model("Text Generation Input", {
+generation_input_def = api.model("Text Generation Input", {
     'text': fields.String(required=True,
                           description="Input prompt",
                           help="Text cannot be blank.",
@@ -120,12 +120,12 @@ generate_pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, de
 
 @ns.route('/generate')
 class Conversation(Resource):
-    @ns.expect(conversation_input_def)
+    @ns.expect(generation_input_def)
     def post(self):
         input_text = request.json['text']
         out = generate_pipe(input_text, return_tensors=True, return_text=False)
         
-        # Remove out input from the generated text
+        # Remove input from the generated text
         out_ids = out[0]['generated_token_ids']
         input_ids = tokenizer.encode(input_text, add_special_tokens=False)
         generated_text = tokenizer.decode(out_ids[len(input_ids):])
@@ -191,7 +191,7 @@ docker run -p 5000:5000 <your_username>/my-repo
 
 And finally [push it to Docker-Hub][docker-hub]:
 ```
-docker push <your_username>/my-private-repo
+docker push <your_username>/my-repo
 ```
 
 ![docker-push](./images/NLP-ms-docker-push.gif)
