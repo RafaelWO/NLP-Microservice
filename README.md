@@ -1,4 +1,5 @@
 # NLP-Microservice
+An example for a Deep Learning NLP model hosted as a RESTful API.   
 
 ## Python Environment
 - Conda environment: `conda create -n nlp-ms python=3.8`
