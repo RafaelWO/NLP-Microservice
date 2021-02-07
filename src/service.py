@@ -37,12 +37,18 @@ class Conversation(Resource):
     @ns.expect(generation_input_def)
     def post(self):
         input_text = request.json['text']
-        out = generate_pipe(input_text, return_tensors=True, return_text=False)
+        max_len = 20
+        input_len = 0
+        if input_text:
+            print(input_text)
+            input_ids = tokenizer.encode(input_text, add_special_tokens=False)
+            input_len = len(input_ids)
+            max_len += input_len
+        out = generate_pipe(input_text, return_tensors=True, return_text=False, max_length=max_len)
 
         # Remove input from the generated text
         out_ids = out[0]['generated_token_ids']
-        input_ids = tokenizer.encode(input_text, add_special_tokens=False)
-        generated_text = tokenizer.decode(out_ids[len(input_ids):])
+        generated_text = tokenizer.decode(out_ids[input_len:], skip_special_tokens=True)
 
         return {'input': input_text, 'generated': generated_text}
 

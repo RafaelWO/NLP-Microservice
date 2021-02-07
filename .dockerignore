@@ -3,6 +3,7 @@
 *.pyo
 *.pyd
 **/__pycache__
+.idea
 local_model
 tutorial
 
