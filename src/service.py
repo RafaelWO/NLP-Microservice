@@ -33,7 +33,7 @@ print("Done")
 
 
 @ns.route('/generate')
-class Conversation(Resource):
+class Generation(Resource):
     @ns.expect(generation_input_def)
     def post(self):
         input_text = request.json['text']

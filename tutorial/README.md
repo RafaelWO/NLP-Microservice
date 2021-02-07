@@ -60,7 +60,7 @@ generate_pipe = pipeline("text-generation", device=device)     # Use default mod
 
 
 @ns.route('/generate')
-class Conversation(Resource):
+class Generation(Resource):
     @ns.expect(generation_input_def)
     def post(self):
         input_text = request.json['text']
@@ -119,7 +119,7 @@ generate_pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, de
 
 
 @ns.route('/generate')
-class Conversation(Resource):
+class Generation(Resource):
     @ns.expect(generation_input_def)
     def post(self):
         input_text = request.json['text']
