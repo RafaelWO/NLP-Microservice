@@ -14,7 +14,7 @@ print("[Enter 'q' to quit]")
 print("[Enter 'c' to continue generating with the previous output]")
 
 try:
-    usr_input = input("Text prompt:")
+    usr_input = input("Text prompt: ")
     prev_text = ""
     while usr_input != "q":
         if usr_input == "c":
