@@ -1,12 +1,15 @@
 import sys
 import requests
 
+
 if len(sys.argv) <= 1:
+    print("An IP address or hostname has to be passed as the first argument, e.g.")
+    print("\t$ python sample_request.py 192.168.0.1")
     sys.exit(-1)
 
 ip_addr = sys.argv[1]
 
-print("Making requests to IP", ip_addr)
+print(f"Making requests to host '{ip_addr}'")
 print("[Enter 'q' to quit]")
 print("[Enter 'c' to continue generating with the previous output]")
 
